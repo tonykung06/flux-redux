@@ -1,4 +1,6 @@
-import {createStore, combineReducers} from 'redux'
+import {createStore, combineReducers, applyMiddleware} from 'redux'
+import logger from 'redux-logger'
+import {get} from './http'
 
 export const ONLINE = 'ONLINE'
 export const AWAY = 'AWAY'
@@ -8,6 +10,9 @@ export const OFFLINE = 'OFFLINE'
 export const UPDATE_STATUS = 'UPDATE_STATUS'
 export const CREATE_NEW_MESSAGE = 'CREATE_NEW_MESSAGE'
 
+export const READY = 'READY'
+export const WAITING = 'WAITING'
+export const NEW_MESSAGE_SERVER_ACCEPTED = 'NEW_MESSAGE_SERVER_ACCEPTED'
 
 const defaultState = {
 	messages: [{
@@ -23,7 +28,8 @@ const defaultState = {
 		postedBy: 'Tony',
 		content: 'Tony\'s second message'
 	}],
-	userStatus: ONLINE
+	userStatus: ONLINE,
+	apiCommunicationStatus: READY
 }
 
 // NOTE: global reducer handling all states in the app
@@ -48,6 +54,15 @@ const userSatusReducer = (state = defaultState.userStatus, {type, value}) => {
 	}
 	return state
 }
+const apiCommunicationSatusReducer = (state = defaultState.apiCommunicationStatus, {type, value}) => {
+	switch (type) {
+		case CREATE_NEW_MESSAGE:
+			return WAITING
+		case NEW_MESSAGE_SERVER_ACCEPTED:
+			return READY
+	}
+	return state
+}
 const messageReducer = (state = defaultState.messages, {type, value, postedBy, date}) => {
 	console.log(type, value, postedBy, date)
 	switch (type) {
@@ -66,12 +81,16 @@ const messageReducer = (state = defaultState.messages, {type, value, postedBy, d
 }
 const combinedReducers = combineReducers({
 	userStatus: userSatusReducer,
-	messages: messageReducer
+	messages: messageReducer,
+	apiCommunicationSatus: apiCommunicationSatusReducer
 })
-const store = createStore(combinedReducers)
+const store = createStore(
+	combinedReducers,
+	applyMiddleware(logger)
+)
 
 const render = () => {
-	const {messages, userStatus} = store.getState()
+	const {messages, userStatus, apiCommunicationSatus} = store.getState()
 	document.getElementById('messages').innerHTML = messages.sort((a, b) => (
 		b.date - a.date
 	)).map(msg => (
@@ -82,7 +101,7 @@ const render = () => {
 		`
 	)).join('')
 
-	document.forms.newMessage.fields.disabled = userStatus === OFFLINE
+	document.forms.newMessage.fields.disabled = userStatus === OFFLINE || apiCommunicationSatus === WAITING
 	document.forms.newMessage.newMessage.value = ''
 }
 
@@ -90,12 +109,19 @@ const statusUpdateAction = value => ({
 	type: UPDATE_STATUS,
 	value
 })
-const newMessageAction = (content, postedBy) => ({
-	type: CREATE_NEW_MESSAGE,
-	value: content,
-	postedBy,
-	date: new Date()
-})
+const newMessageAction = (content, postedBy) => {
+	get('/api/create', id => {
+		store.dispatch({
+			type: NEW_MESSAGE_SERVER_ACCEPTED
+		})
+	})
+	return {
+		type: CREATE_NEW_MESSAGE,
+		value: content,
+		postedBy,
+		date: new Date()
+	}
+}
 
 
 document.forms.newMessage.addEventListener('submit', e => {
@@ -113,3 +139,7 @@ document.forms.selectStatus.status.addEventListener('change', e => {
 render()
 
 store.subscribe(render)
+
+get('http://test.domain.com', (id) => {
+	console.log(id)
+})

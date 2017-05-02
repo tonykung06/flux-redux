@@ -2,6 +2,7 @@
 
 ## TODO:
 - `using immutablejs for immutable data structures`
+- `using redux-thunk or redux-saga to ease chaining async side-effects in actions`
 
 ## Getting started
 To run application, run
