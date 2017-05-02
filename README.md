@@ -1,5 +1,8 @@
 # Flux-Redux Exemplar
 
+## TODO:
+- `using immutablejs for immutable data structures`
+
 ## Getting started
 To run application, run
 ```bash

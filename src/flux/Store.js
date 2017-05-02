@@ -6,7 +6,7 @@ export class Store {
 	}
 
 	__onDispatch() {
-		throw new Error('Subclasses must override __onDispatch method of a Flux store')
+		throw new Error('Subclasses must override __onDispatch method of a Flux Store')
 	}
 
 	getInitialState() {
